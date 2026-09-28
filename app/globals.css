@@ -1,0 +1,218 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f4f1ea;
+  color: #1f211d;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: #f4f1ea; }
+button, input, textarea { font: inherit; }
+
+.shell { max-width: 1220px; margin: 0 auto; padding: 48px 24px 64px; }
+
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #73776d;
+  margin-bottom: 10px;
+}
+
+.projectTitle {
+  width: min(720px, 100%);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: clamp(38px, 6vw, 72px);
+  font-weight: 900;
+  letter-spacing: -.05em;
+  color: #1f211d;
+  outline: none;
+}
+
+.subtitle { margin: 10px 0 0; color: #6e7268; font-size: 17px; }
+
+button {
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.ghost { background: #e7e2d8; padding: 10px 14px; color: #4f534b; }
+
+.missionCard {
+  background: #1f211d;
+  color: #fffdf7;
+  border-radius: 28px;
+  padding: 34px;
+  box-shadow: 0 18px 50px rgba(31,33,29,.12);
+}
+
+.missionLabel {
+  color: #b8bdaf;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.missionCard h2 {
+  margin: 14px 0 10px;
+  max-width: 900px;
+  font-size: clamp(28px, 4vw, 48px);
+  line-height: 1.08;
+  letter-spacing: -.04em;
+}
+
+.missionCard p { margin: 0 0 24px; color: #cfd3c8; }
+
+.primary { padding: 14px 18px; background: #f0d96d; color: #24251f; }
+.primary:disabled { opacity: .55; cursor: default; }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 18px 0;
+}
+
+.stats div {
+  background: #fffdf8;
+  border: 1px solid #e7e1d6;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.stats strong { display: block; font-size: 26px; }
+.stats span { color: #7b7e76; font-size: 13px; }
+
+.grid { display: grid; grid-template-columns: 320px 1fr; gap: 18px; }
+
+.panel {
+  background: #fffdf8;
+  border: 1px solid #e7e1d6;
+  border-radius: 22px;
+  padding: 20px;
+  min-width: 0;
+}
+
+.panelHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.panelHead h3 { margin: 0; font-size: 18px; }
+.panelHead > span { color: #858980; }
+
+.composer input,
+.composer textarea,
+.note textarea {
+  width: 100%;
+  border: 1px solid #ded8cc;
+  border-radius: 12px;
+  background: #faf7f1;
+  padding: 12px;
+  outline: none;
+}
+
+.composer textarea { min-height: 180px; margin-top: 10px; resize: vertical; }
+.secondary { width: 100%; margin-top: 10px; padding: 12px; background: #2e312b; color: white; }
+
+.daily {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #777b72;
+  font-size: 12px;
+}
+
+.daily input {
+  width: 74px;
+  border: 1px solid #ddd6ca;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #faf7f1;
+}
+
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.column {
+  border-radius: 15px;
+  background: #f5f1e9;
+  padding: 10px;
+  min-width: 150px;
+}
+
+.columnTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 4px 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.columnTitle b {
+  background: #e1dbcf;
+  border-radius: 999px;
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+}
+
+.cards { display: grid; gap: 8px; }
+
+.note {
+  background: #fffdf8;
+  border: 1px solid #e5dfd3;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.note h4 { margin: 0 0 8px; font-size: 14px; line-height: 1.35; }
+.note textarea { min-height: 110px; font-size: 13px; resize: vertical; }
+.note button { margin-top: 8px; padding: 7px 9px; background: #e7e1d4; color: #474b43; font-size: 12px; }
+
+.empty {
+  border: 1px dashed #d9d2c6;
+  border-radius: 10px;
+  padding: 18px 8px;
+  text-align: center;
+  color: #aaa79e;
+  font-size: 12px;
+}
+
+.footer { margin-top: 18px; color: #8b8e85; font-size: 12px; text-align: center; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .pipeline { grid-template-columns: repeat(4, 220px); }
+}
+
+@media (max-width: 560px) {
+  .shell { padding: 28px 14px 48px; }
+  .hero { align-items: center; }
+  .missionCard { padding: 24px 20px; border-radius: 22px; }
+  .stats { gap: 8px; }
+  .stats div { padding: 14px; }
+}
