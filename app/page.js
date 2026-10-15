@@ -10,6 +10,8 @@ const emptyState = {
   streak: 0,
   lastCompletedDate: null,
   items: [],
+  materialGoal: 40,
+  editorialReviews: [],
 };
 
 const stageLabel = {
@@ -90,6 +92,9 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [restoreError, setRestoreError] = useState("");
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -117,6 +122,14 @@ export default function Home() {
     }, {});
   }, [state.items]);
 
+  const materialRoots = useMemo(() => state.items.filter((i) => !i.parentId), [state.items]);
+  const materialCount = materialRoots.length;
+  const materialGoal = Math.max(1, Number(state.materialGoal) || 40);
+  const materialPercent = Math.min(100, Math.round(materialCount / materialGoal * 100));
+  const reachedMilestone = [100, 75, 50].find((m) => materialPercent >= m) || 0;
+  const reviewedMilestones = new Set((state.editorialReviews || []).map((r) => r.milestone).filter(Boolean));
+  const pendingMilestone = [50, 75, 100].find((m) => materialPercent >= m && !reviewedMilestones.has(m)) || 0;
+  const latestReview = (state.editorialReviews || [])[0];
   const completedToday = state.lastCompletedDate === todayKey();
   const denominator =
     counts.material + counts.selected + counts.draft + counts.manuscript || 1;
@@ -202,6 +215,51 @@ export default function Home() {
     }));
   }
 
+  async function runEditorialReview() {
+    if (reviewLoading || !materialCount) return;
+    setReviewLoading(true);
+    setReviewError("");
+    try {
+      const response = await fetch("/api/editorial-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectTitle: state.projectTitle,
+          materialGoal,
+          items: materialRoots.map((i) => ({ title: i.title, body: i.body || "" })),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.review) throw new Error(result.error || "분석에 실패했습니다.");
+      const record = { ...result.review, id: crypto.randomUUID(), milestone: pendingMilestone || null, materialCount, createdAt: new Date().toISOString() };
+      setState((current) => ({ ...current, editorialReviews: [record, ...(current.editorialReviews || [])] }));
+    } catch (error) {
+      setReviewError(error.message || "분석에 실패했습니다.");
+    } finally {
+      setReviewLoading(false);
+    }
+  }
+
+  async function restoreBackup(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setRestoreError("");
+    try {
+      if (file.size > 5_000_000) throw new Error("5MB 이하의 백업 파일만 복원할 수 있습니다.");
+      const parsed = JSON.parse(await file.text());
+      if (!parsed || !Array.isArray(parsed.items) || typeof parsed.projectTitle !== "string" ||
+        parsed.items.some((i) => !i || typeof i.id !== "string" || typeof i.title !== "string" ||
+          typeof i.stage !== "string" || !["material","selected","draft","manuscript"].includes(i.stage))) {
+        throw new Error("끝까지 백업 파일 형식이 아닙니다.");
+      }
+      if (!window.confirm("현재 브라우저의 프로젝트 데이터를 백업 파일로 교체할까요? 먼저 현재 데이터를 백업하는 것을 권장합니다.")) return;
+      setState({ ...emptyState, ...parsed, materialGoal: Math.max(1, Math.min(500, Number(parsed.materialGoal) || 40)), editorialReviews: Array.isArray(parsed.editorialReviews) ? parsed.editorialReviews : [] });
+    } catch (error) {
+      setRestoreError(error.message || "백업 복원에 실패했습니다.");
+    }
+  }
+
   function exportBackup() {
     const blob = new Blob([JSON.stringify(state, null, 2)], {
       type: "application/json",
@@ -231,9 +289,41 @@ export default function Home() {
           />
           <p className="subtitle">책 한 권을 끝내기 위한 집필 시스템</p>
         </div>
-        <button className="ghost" onClick={exportBackup}>백업</button>
+        <div className="backupActions">
+          <button className="ghost" onClick={exportBackup}>JSON 백업</button>
+          <label className="ghost restoreButton">복원<input type="file" accept=".json,application/json" onChange={restoreBackup} hidden /></label>
+        </div>
       </section>
 
+      {restoreError && <p role="alert" className="errorMessage">{restoreError}</p>}
+      <section className="editorialPanel panel">
+        <div className="panelHead"><h3>AI 편집국 · 소재 수집</h3><span>{materialPercent}%</span></div>
+        <div className="goalLine">
+          <span>수집한 소재 <strong>{materialCount}개</strong> / 목표</span>
+          <label><input type="number" min="1" max="500" value={materialGoal}
+            onChange={(e) => setState((current) => ({ ...current, materialGoal: Math.max(1, Math.min(500, Number(e.target.value) || 1)) }))} aria-label="목표 소재 개수" />개</label>
+        </div>
+        <div className="goalTrack" role="progressbar" aria-valuenow={materialPercent} aria-valuemin={0} aria-valuemax={100} aria-label="소재 수집 진행률"><div style={{ width: `${materialPercent}%` }} /></div>
+        <div className="milestoneLabels"><span>시작</span><span>50% 리뷰</span><span>75% 리뷰</span><span>100%</span></div>
+        {pendingMilestone > 0 && <p className="milestoneNotice">🎯 {pendingMilestone}% 마일스톤에 도달했어. 지금까지의 소재를 AI 편집장과 검토해보자.</p>}
+        {!pendingMilestone && reachedMilestone > 0 && <p className="milestoneNotice">현재 {reachedMilestone}% 구간이야. 필요할 때 언제든 추가 리뷰를 요청할 수 있어.</p>}
+        <button className="secondary reviewButton" onClick={runEditorialReview} disabled={reviewLoading || !materialCount}>
+          {reviewLoading ? "편집장이 소재를 분석하는 중..." : pendingMilestone ? `${pendingMilestone}% AI 편집 회의 시작` : "AI 편집장에게 소재 검토 요청"}
+        </button>
+        {reviewError && <p role="alert" className="errorMessage">{reviewError}</p>}
+        {latestReview && <div className="reviewResult">
+          <div className="panelHead"><h3>최근 편집 회의</h3><span>{new Date(latestReview.createdAt).toLocaleDateString("ko-KR")}</span></div>
+          <p><strong>종합 의견</strong><br />{latestReview.summary}</p>
+          <p><strong>주제 연결성</strong><br />{latestReview.connections}</p>
+          <p><strong>소재 다양성</strong><br />{latestReview.diversity}</p>
+          <p><strong>보완할 부분</strong><br />{latestReview.gaps}</p>
+          <p><strong>갈무리 준비도</strong><br />{latestReview.readiness}</p>
+          <p className="nextAction"><strong>다음 행동</strong><br />{latestReview.nextAction}</p>
+          {latestReview.questions?.length > 0 && <div><strong>함께 생각할 질문</strong><ul>{latestReview.questions.map((q, index) => <li key={index}>{q}</li>)}</ul></div>}
+          <small>편집장의 제안은 자동으로 원고를 변경하지 않아. 최종 결정은 저자의 몫이야.</small>
+        </div>}
+        <p className="privacyNote">AI 검토를 요청하면 소재 제목과 내용이 외부 AI 서비스로 전송돼. 검토 결과는 현재 브라우저에 저장돼.</p>
+      </section>
       <section className="missionCard">
         <span className="missionLabel">오늘 책을 앞으로 밀 일</span>
         <h2>{mission.title}</h2>
@@ -337,7 +427,7 @@ export default function Home() {
       </section>
 
       <p className="footer">
-        v0.1 — 데이터는 이 브라우저에 저장됩니다. Obsidian Vault 직접 연동은 다음 단계에서 붙입니다.
+        v0.2 — 데이터와 편집 회의 기록은 이 브라우저에 저장됩니다. JSON 백업을 정기적으로 내려받아 주세요.
       </p>
     </main>
   );
