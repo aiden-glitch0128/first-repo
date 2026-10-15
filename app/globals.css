@@ -216,3 +216,23 @@ button {
   .stats { gap: 8px; }
   .stats div { padding: 14px; }
 }
+
+/* v0.2 editorial desk */
+.editorialPanel { margin-bottom: 18px; }
+.goalLine, .backupActions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.goalLine { justify-content: space-between; }
+.goalLine input { width: 70px; border: 1px solid #ddd6ca; border-radius: 8px; padding: 7px; background: #faf7f1; }
+.goalTrack { height: 12px; background: #e9e3d7; border-radius: 999px; overflow: hidden; margin-top: 16px; }
+.goalTrack div { height: 100%; background: #667c57; transition: width .2s; }
+.milestoneLabels { display: flex; justify-content: space-between; font-size: 11px; color: #797d74; margin-top: 7px; }
+.milestoneNotice { background: #f1ead0; border-radius: 12px; padding: 12px; }
+.reviewButton { max-width: 360px; }
+.reviewButton:disabled { opacity: .6; cursor: wait; }
+.reviewResult { margin-top: 18px; border-top: 1px solid #e6dfd3; padding-top: 18px; line-height: 1.6; }
+.reviewResult p { white-space: pre-wrap; }
+.reviewResult .nextAction { background: #f1ead0; border-radius: 12px; padding: 12px; }
+.reviewResult li { margin-bottom: 6px; }
+.reviewResult small, .privacyNote { color: #777b72; font-size: 12px; }
+.errorMessage { color: #9b302b; font-size: 13px; }
+.restoreButton { display: inline-flex; cursor: pointer; font-size: 13px; font-weight: 800; border-radius: 12px; }
+@media (max-width: 560px) { .backupActions { justify-content: flex-end; } .reviewButton { max-width: none; } }
