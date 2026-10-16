@@ -14,6 +14,7 @@ const emptyState = {
   editorialReviews: [],
   editorialDecisions: [],
   interviewHistory: [],
+  aiProvider: "gemini",
 };
 
 const stageLabel = {
@@ -238,6 +239,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-editor-access": editorAccess },
         body: JSON.stringify({
+          provider: state.aiProvider || "gemini",
           projectTitle: state.projectTitle,
           materialGoal,
           items: materialRoots.map((i) => ({ title: i.title, body: i.body || "" })),
@@ -263,6 +265,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-editor-access": editorAccess },
         body: JSON.stringify({
+          provider: state.aiProvider || "gemini",
           projectTitle: state.projectTitle,
           materialTitles: materialRoots.map((i) => i.title),
           lastEditorialDecision: (state.editorialDecisions || [])[0]?.text || latestReview?.nextAction || "",
@@ -356,6 +359,10 @@ export default function Home() {
       {restoreError && <p role="alert" className="errorMessage">{restoreError}</p>}
       <section className="panel accessPanel">
         <div className="panelHead"><h3>나만의 AI 편집국 접근 코드</h3><span>개인 테스트용</span></div>
+        <label className="providerChoice">AI 모델 제공업체 <select value={state.aiProvider || "gemini"} onChange={(e) => setState((current) => ({ ...current, aiProvider: e.target.value }))}>
+          <option value="gemini">Google Gemini (기본)</option>
+          <option value="openai">OpenAI</option>
+        </select></label>
         <input type="password" autoComplete="off" value={editorAccess} onChange={(e) => updateAccess(e.target.value)}
           placeholder="서버에 설정한 EDITOR_ACCESS_TOKEN" aria-label="AI 편집국 접근 코드" />
         <p className="privacyNote">이 코드는 현재 탭의 세션 저장소에만 보관돼. 공개용 사용자 인증이 아니며, 기기를 공유한다면 탭을 닫아줘.</p>
@@ -387,7 +394,7 @@ export default function Home() {
           <button className="ghost" onClick={recordEditorialDecision}>이번 회의의 내 결정 기록하기</button>
           <small>편집장의 제안은 자동으로 원고를 변경하지 않아. 최종 결정은 저자의 몫이야.</small>
         </div>}
-        <p className="privacyNote">AI 검토를 요청하면 소재 제목과 내용이 외부 AI 서비스로 전송돼. 검토 결과는 현재 브라우저에 저장돼.</p>
+        <p className="privacyNote">AI 검토를 요청하면 소재 제목과 내용이 선택한 AI 서비스로 전송돼. 검토 결과는 현재 브라우저에 저장돼.</p>
       </section>
       <section className="panel interviewPanel">
         <div className="panelHead"><h3>AI 인터뷰어 · 생각 발전시키기</h3><span>한 번에 한 질문</span></div>

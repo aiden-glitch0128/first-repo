@@ -245,3 +245,6 @@ button {
 .interviewEntry p { white-space: pre-wrap; }
 .interviewEntry button:disabled { opacity: .6; }
 .decisionsPanel p { border-bottom: 1px solid #e5dfd3; padding-bottom: 12px; }
+
+.providerChoice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; font-size: 14px; font-weight: 700; }
+.providerChoice select { border: 1px solid #ded8cc; border-radius: 10px; padding: 10px; background: #faf7f1; max-width: 100%; }
