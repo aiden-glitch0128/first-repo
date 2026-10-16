@@ -12,6 +12,8 @@ const emptyState = {
   items: [],
   materialGoal: 40,
   editorialReviews: [],
+  editorialDecisions: [],
+  interviewHistory: [],
 };
 
 const stageLabel = {
@@ -95,6 +97,11 @@ export default function Home() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [restoreError, setRestoreError] = useState("");
+  const [editorAccess, setEditorAccess] = useState("");
+  const [interviewAnswer, setInterviewAnswer] = useState("");
+  const [interviewLoading, setInterviewLoading] = useState(false);
+  const [interviewError, setInterviewError] = useState("");
+  const [interviewPrompt, setInterviewPrompt] = useState("책에 담고 싶은 경험이나 생각을 자유롭게 적어줘. 편집장이 다음 질문을 이어갈게.");
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -103,12 +110,19 @@ export default function Home() {
         setState({ ...emptyState, ...JSON.parse(raw) });
       } catch {}
     }
+    setEditorAccess(sessionStorage.getItem("kkutkkaji-editor-access") || "");
     setHydrated(true);
   }, []);
 
   useEffect(() => {
     if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state, hydrated]);
+
+  function updateAccess(value) {
+    setEditorAccess(value);
+    if (value) sessionStorage.setItem("kkutkkaji-editor-access", value);
+    else sessionStorage.removeItem("kkutkkaji-editor-access");
+  }
 
   const mission = useMemo(
     () => nextMission(state.items, state.dailyChars),
@@ -222,7 +236,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/editorial-review", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-editor-access": editorAccess },
         body: JSON.stringify({
           projectTitle: state.projectTitle,
           materialGoal,
@@ -238,6 +252,50 @@ export default function Home() {
     } finally {
       setReviewLoading(false);
     }
+  }
+
+  async function askInterviewer() {
+    if (!interviewAnswer.trim() || interviewLoading) return;
+    setInterviewLoading(true);
+    setInterviewError("");
+    try {
+      const response = await fetch("/api/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-editor-access": editorAccess },
+        body: JSON.stringify({
+          projectTitle: state.projectTitle,
+          materialTitles: materialRoots.map((i) => i.title),
+          lastEditorialDecision: (state.editorialDecisions || [])[0]?.text || latestReview?.nextAction || "",
+          history: state.interviewHistory || [],
+          answer: interviewAnswer,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.interview) throw new Error(result.error || "인터뷰에 실패했습니다.");
+      const entry = { id: crypto.randomUUID(), question: interviewPrompt, answer: interviewAnswer.trim(), ...result.interview, createdAt: new Date().toISOString() };
+      setState((current) => ({ ...current, interviewHistory: [...(current.interviewHistory || []), entry] }));
+      setInterviewPrompt(result.interview.question);
+      setInterviewAnswer("");
+    } catch (error) {
+      setInterviewError(error.message || "인터뷰에 실패했습니다.");
+    } finally { setInterviewLoading(false); }
+  }
+
+  function saveInterviewMaterial(entry) {
+    setState((current) => ({
+      ...current,
+      items: [{ id: crypto.randomUUID(), title: entry.materialSuggestion || "인터뷰에서 발견한 소재", body: entry.answer, stage: "material", createdAt: new Date().toISOString() }, ...current.items],
+      interviewHistory: (current.interviewHistory || []).map((i) => i.id === entry.id ? { ...i, savedAsMaterial: true } : i),
+    }));
+  }
+
+  function recordEditorialDecision() {
+    const text = window.prompt("이번 편집 회의에서 결정한 내용을 기록해줘. (예: 소재 5개를 더 모은 뒤 갈무리 시작)");
+    if (!text?.trim()) return;
+    setState((current) => ({
+      ...current,
+      editorialDecisions: [{ id: crypto.randomUUID(), text: text.trim().slice(0, 2000), createdAt: new Date().toISOString(), reviewId: latestReview?.id || null }, ...(current.editorialDecisions || [])],
+    }));
   }
 
   async function restoreBackup(event) {
@@ -296,6 +354,12 @@ export default function Home() {
       </section>
 
       {restoreError && <p role="alert" className="errorMessage">{restoreError}</p>}
+      <section className="panel accessPanel">
+        <div className="panelHead"><h3>나만의 AI 편집국 접근 코드</h3><span>개인 테스트용</span></div>
+        <input type="password" autoComplete="off" value={editorAccess} onChange={(e) => updateAccess(e.target.value)}
+          placeholder="서버에 설정한 EDITOR_ACCESS_TOKEN" aria-label="AI 편집국 접근 코드" />
+        <p className="privacyNote">이 코드는 현재 탭의 세션 저장소에만 보관돼. 공개용 사용자 인증이 아니며, 기기를 공유한다면 탭을 닫아줘.</p>
+      </section>
       <section className="editorialPanel panel">
         <div className="panelHead"><h3>AI 편집국 · 소재 수집</h3><span>{materialPercent}%</span></div>
         <div className="goalLine">
@@ -320,10 +384,35 @@ export default function Home() {
           <p><strong>갈무리 준비도</strong><br />{latestReview.readiness}</p>
           <p className="nextAction"><strong>다음 행동</strong><br />{latestReview.nextAction}</p>
           {latestReview.questions?.length > 0 && <div><strong>함께 생각할 질문</strong><ul>{latestReview.questions.map((q, index) => <li key={index}>{q}</li>)}</ul></div>}
+          <button className="ghost" onClick={recordEditorialDecision}>이번 회의의 내 결정 기록하기</button>
           <small>편집장의 제안은 자동으로 원고를 변경하지 않아. 최종 결정은 저자의 몫이야.</small>
         </div>}
         <p className="privacyNote">AI 검토를 요청하면 소재 제목과 내용이 외부 AI 서비스로 전송돼. 검토 결과는 현재 브라우저에 저장돼.</p>
       </section>
+      <section className="panel interviewPanel">
+        <div className="panelHead"><h3>AI 인터뷰어 · 생각 발전시키기</h3><span>한 번에 한 질문</span></div>
+        <p className="interviewPrompt">{interviewPrompt}</p>
+        <textarea value={interviewAnswer} onChange={(e) => setInterviewAnswer(e.target.value)}
+          placeholder="떠오르는 생각을 편하게 적어봐. 원고로 자동 반영되지 않아." />
+        <button className="secondary reviewButton" disabled={!interviewAnswer.trim() || interviewLoading} onClick={askInterviewer}>
+          {interviewLoading ? "인터뷰어가 생각을 정리하는 중..." : "AI에게 다음 질문 받기"}
+        </button>
+        {interviewError && <p role="alert" className="errorMessage">{interviewError}</p>}
+        {(state.interviewHistory || []).slice(-3).reverse().map((entry) => (
+          <div className="interviewEntry" key={entry.id}>
+            <strong>{entry.question}</strong>
+            <p>{entry.answer}</p>
+            <p><strong>AI가 발견한 핵심:</strong> {entry.reflection}</p>
+            <button className="ghost" disabled={entry.savedAsMaterial} onClick={() => saveInterviewMaterial(entry)}>
+              {entry.savedAsMaterial ? "소재로 저장됨 ✓" : "내 답변을 소재로 저장"}
+            </button>
+          </div>
+        ))}
+      </section>
+      {(state.editorialDecisions || []).length > 0 && <section className="panel decisionsPanel">
+        <div className="panelHead"><h3>편집 결정 기록</h3><span>{state.editorialDecisions.length}건</span></div>
+        {(state.editorialDecisions || []).slice(0, 5).map((decision) => <p key={decision.id}><strong>{new Date(decision.createdAt).toLocaleDateString("ko-KR")}</strong> · {decision.text}</p>)}
+      </section>}
       <section className="missionCard">
         <span className="missionLabel">오늘 책을 앞으로 밀 일</span>
         <h2>{mission.title}</h2>
