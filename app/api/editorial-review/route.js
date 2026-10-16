@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
+import { authorizeEditor } from "../../../lib/editor-access";
 
 const SYSTEM = `너는 '끝까지'의 총괄 편집장이다. 목표는 저자가 실제로 책 한 권을 완성하도록 돕는 것이다. 소재 분석은 주제 연결성, 관점 다양성, 집필 가능성, 책 구성 가능성을 균형 있게 검토한다. 소재 개수가 목표 미만이어도 충분하면 갈무리를 제안할 수 있다. 소재를 억지로 하나의 주제로 묶지 말고 판단 근거와 불확실성을 밝힌다. 저자 대신 책을 쓰거나 원고를 임의 수정하지 않는다. 답변은 한국어로 구체적이고 간결하게. 반드시 JSON 객체만 반환: {"summary":"전체 진단","connections":"주제 연결성 및 중심 메시지 후보","diversity":"관점 다양성","gaps":"부족한 소재와 보완 방향","readiness":"지금 갈무리 가능한지 및 이유","nextAction":"다음에 할 한 가지 행동","questions":["저자에게 할 질문 1","질문 2","질문 3"]}.`;
 
 export async function POST(request) {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: "AI 편집장이 아직 연결되지 않았습니다. 서버 환경변수 OPENAI_API_KEY를 설정해 주세요." }, { status: 503 });
-  }
+  const denied = authorizeEditor(request);
+  if (denied) return denied;
   let body;
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: "요청 형식이 올바르지 않습니다." }, { status: 400 });
