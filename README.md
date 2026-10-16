@@ -66,3 +66,14 @@ Vercel 프로젝트의 **Settings → Environment Variables**에서 서버 환�
 - 리뷰 후 **이번 회의의 내 결정 기록하기**를 통해 저자 결정을 별도 저장합니다.
 - 접근 코드는 현재 탭의 sessionStorage에 저장되며, 원고 및 편집 기록은 기존 localStorage에 저장됩니다.
 - 인증 전환 이전의 임시 보호: 서버 측 코드 검사 + 인스턴스별 시간당 12회 제한. **서버리스 인스턴스마다 제한이 따로 적용되고 재시작하면 초기화되므로 전역적인 남용 방지는 아닙니다.** 공개 운영 전 서버 측 지속형 rate limiting, 사용자 인증, 비용 제한을 추가해야 합니다.
+
+## Gemini / OpenAI 선택 (v0.3)
+- AI 연결 기본값은 Google Gemini, 선택값은 OpenAI. 인터뷰와 편집장 리뷰에 동일한 제공업체 설정을 적용합니다.
+- **Gemini:** Vercel 서버 환경변수 `GEMINI_API_KEY` 등록. 기본 모델은 `gemini-2.5-flash`; 다른 모델은 `GEMINI_MODEL`로 지정.
+- **OpenAI:** Vercel 서버 환경변수 `OPENAI_API_KEY` 등록. 기본 모델은 `gpt-4o-mini`; 다른 모델은 `OPENAI_MODEL`로 지정.
+- 공통: 20자 이상의 `EDITOR_ACCESS_TOKEN`을 서버 환경변수로 설정. 브라우저에서 동일한 접근 코드를 입력.
+- 두 API 키 모두 필수는 아닙니다. **선택한 제공업체의 키 하나만 있으면** 됩니다. 키는 GitHub 코드나 `NEXT_PUBLIC_*` 변수에 저장하지 마세요.
+- Gemini 연결은 Google의 OpenAI 호환 Chat Completions 엔드포인트를 사용합니다. 모델 가용성 및 JSON 응답 지원 여부는 Google AI Studio에서 확인하세요.
+- 제공업체를 바꾸면 작성 소재가 해당 제공업체로 전송될 수 있습니다. 사용 전에 개인정보/비공개 소재의 외부 전송 여부를 검토하세요.
+- 기존 README의 OpenAI 전용 안내는 v0.2 기준이며, 이 절의 설정이 우선합니다.
+- 현재 서버 측 호출 제한은 인스턴스별 메모리 방식으로, 공개 운영용 완전한 비용 방어가 아닙니다.
